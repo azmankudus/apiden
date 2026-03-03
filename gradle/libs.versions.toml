@@ -1,0 +1,19 @@
+[versions]
+micronaut-plugins = "4.6.2"
+shadow = "8.3.9"
+
+[plugins]
+micronaut-aot = { id = "io.micronaut.aot", version.ref = "micronaut-plugins" }
+micronaut-application = { id = "io.micronaut.application", version.ref = "micronaut-plugins" }
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
+
+[libraries]
+micronaut-core-processor = { module = "io.micronaut:micronaut-core-processor" }
+micronaut-http-client = { module = "io.micronaut:micronaut-http-client" }
+micronaut-http-validation = { module = "io.micronaut:micronaut-http-validation" }
+micronaut-serde-processor = { module = "io.micronaut.serde:micronaut-serde-processor" }
+micronaut-serde-jackson = { module = "io.micronaut.serde:micronaut-serde-jackson" }
+micronaut-sourcegen-annotations = { module = "io.micronaut.sourcegen:micronaut-sourcegen-annotations" }
+micronaut-sourcegen-generator-java = { module = "io.micronaut.sourcegen:micronaut-sourcegen-generator-java" }
+logback-classic = { module = "ch.qos.logback:logback-classic" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }

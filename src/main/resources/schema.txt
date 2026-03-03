@@ -1,0 +1,24 @@
+client
+  http
+    headers = []
+  request
+    traceid = UUID
+    timestamp = ISO_OFFSET_DATE_TIME
+    body = []
+  response
+    timestamp = ISO_OFFSET_DATE_TIME
+    duration = ISO_DURATION
+server
+  http
+    status = 999
+    headers = []
+  request
+    timestamp = ISO_OFFSET_DATE_TIME
+    traceid = UUID
+  response
+    timestamp = ISO_OFFSET_DATE_TIME
+    duration = ISO_DURATION
+    status = <success|warning|error>
+    code = ""
+    message = ""
+    body = []
