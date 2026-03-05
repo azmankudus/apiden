@@ -1,5 +1,12 @@
 package com.example.apiden.module.hello;
 
+import com.example.apiden.shared.api.ApiBody;
+import com.example.apiden.shared.api.ApiConstants;
+import com.example.apiden.shared.api.ApiException;
+import com.example.apiden.shared.api.ResponseBody;
+import com.example.apiden.shared.api.ResponseStatus;
+import com.example.apiden.shared.infrastructure.Message;
+
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
@@ -8,15 +15,11 @@ import io.micronaut.http.annotation.Consumes;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.MutableHttpResponse;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
-
-import com.example.apiden.shared.api.ApiBody;
-import com.example.apiden.shared.api.ApiException;
-import com.example.apiden.shared.api.ResponseBody;
-import com.example.apiden.shared.api.ResponseStatus;
 
 /**
  * Controller for handling 'hello' related API requests.
@@ -28,12 +31,15 @@ public final class HelloController {
   /** logger instance for HelloController. */
   private static final Logger log = LoggerFactory.getLogger(HelloController.class);
 
+  private final Message messages;
+
   /**
    * Default constructor for HelloController.
-   * Annotated with package-level access control.
    */
-  HelloController() {
+  @Inject
+  HelloController(final Message messages) {
     log.debug("Initializing HelloController instance.");
+    this.messages = messages;
   }
 
   /**
@@ -48,7 +54,11 @@ public final class HelloController {
     log.info("Received request for GET /hello");
     log.debug("Preparing successful response for index endpoint.");
 
-    return HttpResponse.ok(new ResponseBody(ResponseStatus.SUCCESS, "0", "Success", Map.of("message", "Hello World")));
+    return HttpResponse.ok(new ResponseBody(
+        ResponseStatus.SUCCESS,
+        ApiConstants.Code.SUCCESS,
+        messages.get(ApiConstants.Msg.SUCCESS),
+        Map.of(ApiConstants.Key.MESSAGE, messages.get(ApiConstants.Label.HELLO_WORLD))));
   }
 
   /**
@@ -67,7 +77,11 @@ public final class HelloController {
     // Validate the input message
     if (hello == null || hello.message() == null) {
       log.warn("Null or empty Hello message received in echo request.");
-      return HttpResponse.badRequest(new ResponseBody(ResponseStatus.ERROR, "400", "Message is required", null));
+      return HttpResponse.badRequest(new ResponseBody(
+          ResponseStatus.ERROR,
+          ApiConstants.Code.BAD_REQUEST,
+          messages.get(ApiConstants.Msg.MESSAGE_REQUIRED),
+          null));
     }
 
     log.debug("Input message received: {}", hello.message());
@@ -75,12 +89,11 @@ public final class HelloController {
 
     // Process the message (simulated work)
     final String reversedMessage = new StringBuilder(hello.message()).reverse().toString();
-    final Hello helloResponse = new Hello(reversedMessage);
-
-    log.trace("Reversed the input message: {} -> {}", hello.message(), reversedMessage);
-    log.info("Echo response successfully prepared.");
-
-    return HttpResponse.ok(new ResponseBody(ResponseStatus.SUCCESS, "0", "Success", helloResponse));
+    return HttpResponse.ok(new ResponseBody(
+        ResponseStatus.SUCCESS,
+        ApiConstants.Code.SUCCESS,
+        messages.get(ApiConstants.Msg.SUCCESS),
+        Map.of(ApiConstants.Key.MESSAGE, reversedMessage)));
   }
 
   /**

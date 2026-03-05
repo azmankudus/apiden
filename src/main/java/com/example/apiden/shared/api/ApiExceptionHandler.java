@@ -1,12 +1,14 @@
 package com.example.apiden.shared.api;
 
+import com.example.apiden.shared.infrastructure.ConfigManager;
+import com.example.apiden.shared.infrastructure.Message;
 import io.micronaut.context.annotation.Requires;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.http.server.exceptions.ExceptionHandler;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import io.micronaut.context.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,16 +29,20 @@ public final class ApiExceptionHandler implements ExceptionHandler<ApiException,
   /** logger instance for ApiExceptionHandler. */
   private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
-  private final boolean includeStacktrace;
+  private final ConfigManager config;
+  private final Message messages;
 
   /**
    * Constructs the exception handler with application configuration.
    *
-   * @param includeStacktrace Flag to determine if stacktraces should be included in the response.
+   * @param config Centralized configuration service for Apiden.
+   * @param messages Helper for i18n message resolution.
    */
-  ApiExceptionHandler(@Value("${application.api.envelope.include-stacktrace:true}") final boolean includeStacktrace) {
-    log.debug("Initializing ApiExceptionHandler with includeStacktrace={}", includeStacktrace);
-    this.includeStacktrace = includeStacktrace;
+  @Inject
+  ApiExceptionHandler(final ConfigManager config, final Message messages) {
+    log.debug("Initializing ApiExceptionHandler instance.");
+    this.config = config;
+    this.messages = messages;
   }
 
   /**
@@ -51,6 +57,8 @@ public final class ApiExceptionHandler implements ExceptionHandler<ApiException,
   public HttpResponse<ResponseBody> handle(final HttpRequest request, final ApiException exception) {
     log.error("Handling ApiException: code={}, message={}", exception.getCode(), exception.getMessage());
     log.trace("Processing exception for request: {} {}", request.getMethod(), request.getUri());
+
+    boolean includeStacktrace = config.getBoolean(ApiConstants.Config.INCLUDE_STACKTRACE, true);
 
     String stackTrace = null;
     if (includeStacktrace) {
@@ -74,20 +82,22 @@ public final class ApiExceptionHandler implements ExceptionHandler<ApiException,
 
     // Build the exception details map
     final Map<String, Object> exceptionContent = new HashMap<>();
-    exceptionContent.put("message",
-        exception.getMessage() != null ? exception.getMessage() : "No error message provided");
+    exceptionContent.put(ApiConstants.Key.MESSAGE,
+        exception.getMessage() != null ? exception.getMessage()
+            : messages.get(ApiConstants.Msg.NO_ERROR_MSG));
 
     if (includeStacktrace && stackTrace != null) {
-      exceptionContent.put("stacktrace", stackTrace);
+      exceptionContent.put(ApiConstants.Key.STACKTRACE, stackTrace);
     }
 
-    final Map<String, Object> exceptionData = Map.of("exception", exceptionContent);
+    final Map<String, Object> exceptionData = Map.of(ApiConstants.Key.EXCEPTION, exceptionContent);
 
     // Create the final response body
     final ResponseBody responseBody = new ResponseBody(
         ResponseStatus.ERROR,
-        exception.getCode() != null ? exception.getCode() : "500",
-        exception.getMessage() != null ? exception.getMessage() : "Server Error",
+        exception.getCode() != null ? exception.getCode() : ApiConstants.Code.ERROR,
+        exception.getMessage() != null ? exception.getMessage()
+            : messages.get(ApiConstants.Msg.SERVER_ERROR),
         exceptionData);
 
     log.info("API Exception handled. Returning status code: {} (code: {})",

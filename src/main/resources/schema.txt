@@ -1,24 +1,28 @@
 client
   http
-    headers = []
+    headers = Map<String, List<String>>
   request
     traceid = UUID
     timestamp = ISO_OFFSET_DATE_TIME
-    body = []
+    language = String
+    body = Object
   response
     timestamp = ISO_OFFSET_DATE_TIME
     duration = ISO_DURATION
+  info = Map<String, Object>
 server
   http
-    status = 999
-    headers = []
+    status = Integer
+    headers = Map<String, List<String>>
   request
     timestamp = ISO_OFFSET_DATE_TIME
     traceid = UUID
   response
     timestamp = ISO_OFFSET_DATE_TIME
     duration = ISO_DURATION
+    language = String
     status = <success|warning|error>
-    code = ""
-    message = ""
-    body = []
+    code = String
+    message = String
+    body = Object
+  info = Map<String, Object>
