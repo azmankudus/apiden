@@ -18,10 +18,19 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Catch-all exception handler that translates unhandled exceptions and {@link ApplicationError}s
+ * into the standard API {@link ResponseEnvelope}.
+ */
 @Produces
 @Singleton
 @Requires(classes = { Exception.class, ExceptionHandler.class })
 final class CustomExceptionHandler implements ExceptionHandler<Exception, HttpResponse<ResponseEnvelope>> {
+
+  private static final Logger logger = LoggerFactory.getLogger(CustomExceptionHandler.class);
 
   private final ConfigManager config;
   private final Message messages;
@@ -34,15 +43,16 @@ final class CustomExceptionHandler implements ExceptionHandler<Exception, HttpRe
   @SuppressWarnings("rawtypes")
   @Override
   public HttpResponse<ResponseEnvelope> handle(final HttpRequest request, final Exception exception) {
+    logger.error("Unhandled exception occurred: {}", exception.getMessage(), exception);
 
     ResponseError error;
     if (exception instanceof ApplicationError appError) {
-      String ec = appError.getCode() != null ? appError.getCode() : "00000500";
+      String ec = appError.getCode() != null ? appError.getCode() : Constant.Code.ERROR;
       String em = messages.get(ec);
       Object detail = appError.getArgs() != null ? messages.get(ec, appError.getArgs().toArray()) : null;
       error = new ResponseError(ec, em, detail);
     } else {
-      String ec = "00000500";
+      String ec = Constant.Code.ERROR;
       String em = exception.getMessage() != null ? exception.getMessage()
           : messages.get(Constant.Message.Core.ERR_SERVER);
       error = new ResponseError(ec, em, null);

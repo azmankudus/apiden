@@ -17,7 +17,10 @@ import java.net.SocketException;
 import java.util.Enumeration;
 
 /**
- * Holds static server information captured at startup.
+ * Captures and exposes static information about the server environment at startup.
+ * 
+ * <p>This includes details such as instance name, operating system version (with detailed
+ * resolution for Linux and Windows), Java runtime version, and the server's IP address.</p>
  */
 @Singleton
 public final class ServerInfo {
@@ -29,6 +32,12 @@ public final class ServerInfo {
   private final String runtime;
   private final String ip;
 
+  /**
+   * Initializes ServerInfo by resolving environment details.
+   *
+   * @param instanceName the configured name of this application instance
+   * @param serverHost the configured server host (optional)
+   */
   ServerInfo(
       @Value("${application.instance.name:apiden}") final String instanceName,
       @Value("${micronaut.server.host:}") final String serverHost) {
@@ -119,18 +128,30 @@ public final class ServerInfo {
     return osName + " " + osVersion;
   }
 
+  /**
+   * @return the application instance name
+   */
   public String getInstanceName() {
     return instanceName;
   }
 
+  /**
+   * @return the operating system name and version
+   */
   public String getOs() {
     return os;
   }
 
+  /**
+   * @return the Java runtime version and vendor
+   */
   public String getRuntime() {
     return runtime;
   }
 
+  /**
+   * @return the resolved IP address of the server
+   */
   public String getIp() {
     return ip;
   }

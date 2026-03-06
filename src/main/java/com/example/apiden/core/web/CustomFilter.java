@@ -22,6 +22,7 @@ import com.example.apiden.core.infra.ServerInfo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -32,6 +33,12 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Global filter for handling API requests and responses.
+ * 
+ * <p>This filter captures metadata from incoming requests (like client trace IDs),
+ * manages the request context, and wraps outgoing responses in a standard API envelope.</p>
+ */
 @ServerFilter(Filter.MATCH_ALL_PATTERN)
 @Order(Ordered.HIGHEST_PRECEDENCE)
 final class CustomFilter {
@@ -42,12 +49,26 @@ final class CustomFilter {
   private final ConfigManager config;
   private final ServerInfo serverInfo;
 
+  /**
+   * Initializes the filter with required dependencies.
+   *
+   * @param jsonMapper for JSON parsing and serialization
+   * @param config for accessing application settings
+   * @param serverInfo for static server metadata
+   */
   CustomFilter(final JsonMapper jsonMapper, final ConfigManager config, final ServerInfo serverInfo) {
     this.jsonMapper = jsonMapper;
     this.config = config;
     this.serverInfo = serverInfo;
   }
 
+  /**
+   * Processes incoming requests to establish context and extract metadata.
+   *
+   * @param request the incoming HTTP request
+   * @param mutableContext context for propagating attributes
+   * @param body the raw request body (optional)
+   */
   @RequestFilter
   public void filterRequest(final HttpRequest<?> request, final MutablePropagatedContext mutableContext,
       @Nullable @Body String body) {
@@ -87,6 +108,9 @@ final class CustomFilter {
 
     String serverTraceId = clientTraceId != null ? clientTraceId : UUID.randomUUID().toString();
 
+    // Add Trace ID to MDC for logging
+    MDC.put(Constant.Attr.CONTEXT_TRACE_ID, serverTraceId);
+
     // Store everything in the propagated context
     Map<String, Object> map = new ConcurrentHashMap<>();
     map.put(Constant.Attr.TIMESTAMP, OffsetDateTime.now());
@@ -115,6 +139,9 @@ final class CustomFilter {
 
     Context.init(map);
     mutableContext.add(new Context(Context.getMap()));
+
+    logger.debug("Incoming request: method={}, path={}, traceId={}",
+        request.getMethod(), request.getPath(), serverTraceId);
   }
 
   private String parseOs(final String userAgent) {
@@ -133,6 +160,12 @@ final class CustomFilter {
     return "Unknown";
   }
 
+  /**
+   * Processes outgoing responses to wrap them in the standard envelope and augment with metadata.
+   *
+   * @param request the original HTTP request
+   * @param response the mutable HTTP response to modify
+   */
   @ResponseFilter
   public void filterResponse(final HttpRequest<?> request, final MutableHttpResponse<?> response) {
     try {
@@ -156,7 +189,6 @@ final class CustomFilter {
       }
 
       if (body instanceof ResponseEnvelope existing) {
-        // Already a ApiResponseEnvelope (from ApiExceptionHandler) — augment meta
         if (includeMetadata) {
           Map<String, Object> mergedMeta = new LinkedHashMap<>();
           if (existing.meta() != null) {
@@ -166,11 +198,9 @@ final class CustomFilter {
           response.body(new ResponseEnvelope(existing.data(), existing.errors(), mergedMeta));
         }
       } else if (response.status().getCode() >= 400) {
-        // Error status but not wrapped (e.g. 404 Page Not Found from Micronaut)
         String code = String.format("00000%03d", response.status().getCode());
         String message = response.status().getReason();
 
-        // If Micronaut already put a "Page Not Found" message in the status or if we can extract it
         if (message == null || message.isBlank()) {
           message = "Error " + code;
         }
@@ -178,11 +208,13 @@ final class CustomFilter {
         ResponseError error = new ResponseError(code, message, null);
         response.body(new ResponseEnvelope(null, List.of(error), meta));
       } else {
-        // Wrap raw body into the standard success envelope
         response.body(new ResponseEnvelope(body, null, meta));
       }
 
+      logger.debug("Outgoing response: status={}, path={}", response.status().getCode(), request.getPath());
+
     } finally {
+      MDC.remove(Constant.Attr.CONTEXT_TRACE_ID);
       Context.destroy();
     }
   }

@@ -1,6 +1,9 @@
 [versions]
+micronaut = "4.7.6"
 micronaut-plugins = "4.6.2"
 shadow = "8.3.9"
+archunit = "1.3.0"
+resilience4j = "2.2.0"
 
 [plugins]
 micronaut-aot = { id = "io.micronaut.aot", version.ref = "micronaut-plugins" }
@@ -8,12 +11,34 @@ micronaut-application = { id = "io.micronaut.application", version.ref = "micron
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
 
 [libraries]
+# Core
 micronaut-core-processor = { module = "io.micronaut:micronaut-core-processor" }
 micronaut-http-client = { module = "io.micronaut:micronaut-http-client" }
 micronaut-http-validation = { module = "io.micronaut:micronaut-http-validation" }
 micronaut-serde-processor = { module = "io.micronaut.serde:micronaut-serde-processor" }
 micronaut-serde-jackson = { module = "io.micronaut.serde:micronaut-serde-jackson" }
+
+# OpenAPI
+micronaut-openapi = { module = "io.micronaut.openapi:micronaut-openapi" }
+swagger-annotations = { module = "io.swagger.core.v3:swagger-annotations" }
+
+# Validation
+micronaut-validation-processor = { module = "io.micronaut.validation:micronaut-validation-processor" }
+micronaut-validation = { module = "io.micronaut.validation:micronaut-validation" }
+
+# Management & Monitoring
+micronaut-management = { module = "io.micronaut:micronaut-management" }
+micronaut-micrometer-core = { module = "io.micronaut.micrometer:micronaut-micrometer-core" }
+micronaut-micrometer-registry-prometheus = { module = "io.micronaut.micrometer:micronaut-micrometer-registry-prometheus" }
+
+# Resilience
+resilience4j-micronaut = { module = "io.github.resilience4j:resilience4j-micronaut", version.ref = "resilience4j" }
+
+# Logging & Tools
+logback-classic = { module = "ch.qos.logback:logback-classic" }
 micronaut-sourcegen-annotations = { module = "io.micronaut.sourcegen:micronaut-sourcegen-annotations" }
 micronaut-sourcegen-generator-java = { module = "io.micronaut.sourcegen:micronaut-sourcegen-generator-java" }
-logback-classic = { module = "ch.qos.logback:logback-classic" }
+
+# Testing
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }

@@ -6,18 +6,21 @@ import io.micronaut.http.annotation.Produces;
 import io.micronaut.http.server.exceptions.response.ErrorContext;
 import io.micronaut.http.server.exceptions.response.ErrorResponseProcessor;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 /**
- * Replaces the default Micronaut error response processor.
- * This ensures that even framework-level errors (like 404) are returned
- * using the standard {@link ResponseEnvelope}.
+ * Custom processor that intercepts framework-level error responses and formats them
+ * into the standardized API {@link ResponseEnvelope}.
  */
 @Produces
 @Singleton
 @Primary
 final class CustomErrorProcessor implements ErrorResponseProcessor<ResponseEnvelope> {
+
+  private static final Logger logger = LoggerFactory.getLogger(CustomErrorProcessor.class);
 
   CustomErrorProcessor() {
   }
@@ -33,6 +36,8 @@ final class CustomErrorProcessor implements ErrorResponseProcessor<ResponseEnvel
     if (message == null || message.isBlank()) {
       message = "Error " + code;
     }
+
+    logger.debug("Processing framework error: status={}, message={}", response.status().getCode(), message);
 
     ResponseError error = new ResponseError(code, message, null);
     ResponseEnvelope envelope = new ResponseEnvelope(null, List.of(error), null);

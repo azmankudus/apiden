@@ -11,9 +11,15 @@ import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Put;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.http.annotation.Consumes;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.Map;
 
+/**
+ * Controller for managing runtime application configurations.
+ */
+@Tag(name = "Management", description = "System management and configuration")
 @Controller("/config")
 public final class ConfigController {
 
@@ -25,6 +31,12 @@ public final class ConfigController {
     this.messages = messages;
   }
 
+  /**
+   * Retrieves all live-updatable configurations.
+   *
+   * @return map of configurations
+   */
+  @Operation(summary = "List configuration", description = "Retrieves all current live-updatable configurations.")
   @Get
   @Produces(MediaType.APPLICATION_JSON)
   public Map<String, Object> getAll() {
@@ -33,6 +45,13 @@ public final class ConfigController {
         configManager.getAll());
   }
 
+  /**
+   * Retrieves a specific configuration by name.
+   *
+   * @param name property key
+   * @return property value or error
+   */
+  @Operation(summary = "Get configuration", description = "Retrieves the value of a specific configuration property.")
   @Get("/{name}")
   @Produces(MediaType.APPLICATION_JSON)
   public Map<String, Object> getByName(final String name) {
@@ -45,11 +64,19 @@ public final class ConfigController {
     }
 
     return Map.of(
-
         messages.get(Constant.Message.Management.MSG_PROP_DETAILS),
         Map.of(Constant.Key.NAME, name, Constant.Key.VALUE, value));
   }
 
+  /**
+   * Updates a configuration property at runtime.
+   *
+   * @param name property key
+   * @param body new value
+   * @return update confirmation with old and new values
+   * @throws IllegalAccessException if the update is not allowed
+   */
+  @Operation(summary = "Update configuration", description = "Updates a configuration property at runtime if allowed.")
   @Put("/{name}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
