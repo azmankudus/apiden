@@ -77,6 +77,11 @@ public record Context(Map<String, Object> data) implements ThreadPropagatedConte
     map.put(name, value);
   }
 
+  /**
+   * Updates the thread-local state and MDC with the data from this context element.
+   *
+   * @return The previous state of the context map.
+   */
   @Override
   public @Nullable Map<String, Object> updateThreadContext() {
     Map<String, Object> oldState = THREAD_LOCAL.get();
@@ -89,6 +94,11 @@ public record Context(Map<String, Object> data) implements ThreadPropagatedConte
     return oldState;
   }
 
+  /**
+   * Restores the thread-local state and MDC to the previous state.
+   *
+   * @param oldState The previous state of the context map.
+   */
   @Override
   public void restoreThreadContext(@Nullable Map<String, Object> oldState) {
     if (oldState == null) {

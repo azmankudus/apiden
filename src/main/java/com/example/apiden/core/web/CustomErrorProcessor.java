@@ -22,9 +22,19 @@ final class CustomErrorProcessor implements ErrorResponseProcessor<ResponseEnvel
 
   private static final Logger logger = LoggerFactory.getLogger(CustomErrorProcessor.class);
 
+  /**
+   * Constructs a new CustomErrorProcessor.
+   */
   CustomErrorProcessor() {
   }
 
+  /**
+   * Processes the error response and wraps it in a standard envelope.
+   *
+   * @param errorContext The error context.
+   * @param response     The mutable HTTP response.
+   * @return A response containing a formatted ResponseEnvelope.
+   */
   @Override
   public MutableHttpResponse<ResponseEnvelope> processResponse(
       final ErrorContext errorContext,

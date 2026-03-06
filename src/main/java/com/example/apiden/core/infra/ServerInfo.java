@@ -50,6 +50,12 @@ public final class ServerInfo {
         instanceName, os, runtime, ip);
   }
 
+  /**
+   * Resolves the IP address to be used for server identification.
+   *
+   * @param host The configured host name.
+   * @return The resolved IP address.
+   */
   private String resolveIp(final String host) {
     if (host == null || host.isBlank() || "localhost".equalsIgnoreCase(host) || "0.0.0.0".equals(host)) {
       return getLocalIp();
@@ -67,6 +73,11 @@ public final class ServerInfo {
     }
   }
 
+  /**
+   * Iterates through network interfaces to find the first non-loopback IPv4 address.
+   *
+   * @return The local IP address or 127.0.0.1 as fallback.
+   */
   private String getLocalIp() {
     try {
       final Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
@@ -89,6 +100,14 @@ public final class ServerInfo {
     return "127.0.0.1";
   }
 
+  /**
+   * Resolves the operating system name and version.
+   * 
+   * <p>On Linux, it attempts to read /etc/os-release for a prettier name.
+   * On Windows, it attempts to execute the 'ver' command.</p>
+   *
+   * @return A descriptive OS string.
+   */
   private String resolveOs() {
     final String osName = System.getProperty("os.name");
     final String osVersion = System.getProperty("os.version");

@@ -8,14 +8,19 @@ package com.example.apiden.core.infra;
  */
 public final class Constant {
 
+  /**
+   * Private constructor to prevent instantiation.
+   */
   private Constant() {
-    // Prevent instantiation
   }
 
   /**
    * Configuration property keys used in application.properties or environment variables.
    */
   public static final class Config {
+    /**
+     * Private constructor for utility class.
+     */
     private Config() {
     }
 
@@ -30,6 +35,9 @@ public final class Constant {
    * Names for request and response attributes used in filters and propagated contexts.
    */
   public static final class Attr {
+    /**
+     * Private constructor for utility class.
+     */
     private Attr() {
     }
 
@@ -49,6 +57,9 @@ public final class Constant {
    * Standard JSON field names for the API envelope.
    */
   public static final class Envelope {
+    /**
+     * Private constructor for utility class.
+     */
     private Envelope() {
     }
 
@@ -60,6 +71,9 @@ public final class Constant {
    * Standard keys used within the "meta" object of API responses.
    */
   public static final class Meta {
+    /**
+     * Private constructor for utility class.
+     */
     private Meta() {
     }
 
@@ -86,6 +100,9 @@ public final class Constant {
    * Standardized application-level status and error codes.
    */
   public static final class Code {
+    /**
+     * Private constructor for utility class.
+     */
     private Code() {
     }
 
@@ -99,10 +116,19 @@ public final class Constant {
    * Pattern: TYPE-ModuleIDMessageID
    */
   public static final class Message {
+    /**
+     * Private constructor for utility class.
+     */
     private Message() {
     }
 
+    /**
+     * Core application messages.
+     */
     public static final class Core {
+      /**
+       * Private constructor for utility class.
+       */
       private Core() {
       }
 
@@ -114,14 +140,26 @@ public final class Constant {
       public static final String TXT_NULL = "TXT-00010002";
     }
 
+    /**
+     * Hello module messages.
+     */
     public static final class Hello {
+      /**
+       * Private constructor for utility class.
+       */
       private Hello() {
       }
 
       public static final String TXT_HELLO = "TXT-00100001";
     }
 
+    /**
+     * Management module messages.
+     */
     public static final class Management {
+      /**
+       * Private constructor for utility class.
+       */
       private Management() {
       }
 
@@ -142,6 +180,9 @@ public final class Constant {
    * Common keys used in internal maps and JSON payloads.
    */
   public static final class Key {
+    /**
+     * Private constructor for utility class.
+     */
     private Key() {
     }
 

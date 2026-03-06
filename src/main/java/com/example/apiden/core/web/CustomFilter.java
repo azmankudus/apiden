@@ -144,6 +144,12 @@ final class CustomFilter {
         request.getMethod(), request.getPath(), serverTraceId);
   }
 
+  /**
+   * Parses the User-Agent string to identify the client's operating system.
+   *
+   * @param userAgent The User-Agent header value.
+   * @return A descriptive OS string.
+   */
   private String parseOs(final String userAgent) {
     if (userAgent == null)
       return "Unknown";
@@ -219,6 +225,14 @@ final class CustomFilter {
     }
   }
 
+  /**
+   * Builds the metadata object for the API response.
+   *
+   * @param request                The current HTTP request.
+   * @param response               The current HTTP response.
+   * @param serverRequestTimestamp The timestamp when the server started processing the request.
+   * @return A map containing response metadata.
+   */
   private Map<String, Object> buildMeta(final HttpRequest<?> request,
       final MutableHttpResponse<?> response,
       final OffsetDateTime serverRequestTimestamp) {

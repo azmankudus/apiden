@@ -8,9 +8,18 @@ import jakarta.inject.Singleton;
 
 /**
  * Factory for creating the MessageSource bean if not auto-configured.
+ * 
+ * <p>This ensures that the application can resolve localized strings from the
+ * 'messages' resource bundles.</p>
  */
 @Factory
 final class MessageSourceFactory {
+
+  /**
+   * Constructs a new MessageSourceFactory.
+   */
+  MessageSourceFactory() {
+  }
 
   /**
    * Provides a ResourceBundleMessageSource for the 'messages' bundle.

@@ -30,6 +30,11 @@ public final class LoggerController {
 
   private final Message messages;
 
+  /**
+   * Constructs a new LoggerController.
+   *
+   * @param messages The message source for localization.
+   */
   LoggerController(final Message messages) {
     this.messages = messages;
   }

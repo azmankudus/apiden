@@ -22,6 +22,11 @@ public final class HelloController {
   private static final Logger logger = LoggerFactory.getLogger(HelloController.class);
   private final HelloService helloService;
 
+  /**
+   * Constructs a new HelloController.
+   *
+   * @param helloService The service for greeting logic.
+   */
   HelloController(final HelloService helloService) {
     this.helloService = helloService;
   }

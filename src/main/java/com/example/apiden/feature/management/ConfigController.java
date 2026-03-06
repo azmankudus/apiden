@@ -26,6 +26,12 @@ public final class ConfigController {
   private final ConfigManager configManager;
   private final Message messages;
 
+  /**
+   * Constructs a new ConfigController.
+   *
+   * @param configManager The manager for runtime configurations.
+   * @param messages      The message source for localization.
+   */
   ConfigController(final ConfigManager configManager, final Message messages) {
     this.configManager = configManager;
     this.messages = messages;

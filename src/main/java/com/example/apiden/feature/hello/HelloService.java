@@ -16,6 +16,11 @@ public final class HelloService {
   private static final Logger logger = LoggerFactory.getLogger(HelloService.class);
   private final Message messages;
 
+  /**
+   * Constructs a new HelloService.
+   *
+   * @param messages The message source for localization.
+   */
   HelloService(final Message messages) {
     this.messages = messages;
   }

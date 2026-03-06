@@ -35,11 +35,24 @@ final class CustomExceptionHandler implements ExceptionHandler<Exception, HttpRe
   private final ConfigManager config;
   private final Message messages;
 
+  /**
+   * Constructs a new CustomExceptionHandler.
+   *
+   * @param config   The configuration manager for response settings.
+   * @param messages The message source for localization.
+   */
   CustomExceptionHandler(final ConfigManager config, final Message messages) {
     this.config = config;
     this.messages = messages;
   }
 
+  /**
+   * Handles the exception and returns a formatted response envelope.
+   *
+   * @param request   The current HTTP request.
+   * @param exception The caught exception.
+   * @return A standard API response containing error details.
+   */
   @SuppressWarnings("rawtypes")
   @Override
   public HttpResponse<ResponseEnvelope> handle(final HttpRequest request, final Exception exception) {
@@ -78,6 +91,12 @@ final class CustomExceptionHandler implements ExceptionHandler<Exception, HttpRe
     return HttpResponse.serverError(envelope);
   }
 
+  /**
+   * Captures the stack trace of an exception as a truncated string.
+   *
+   * @param exception The exception to process.
+   * @return A string representation of the stack trace, or null if capture fails.
+   */
   private String captureStackTrace(final Exception exception) {
     try (StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw)) {

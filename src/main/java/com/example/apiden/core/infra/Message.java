@@ -4,8 +4,6 @@ import java.util.Locale;
 
 import io.micronaut.context.MessageSource;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Service for resolving localized messages from the application resource bundles.
@@ -16,7 +14,6 @@ import org.slf4j.LoggerFactory;
 @Singleton
 public final class Message {
 
-  private static final Logger logger = LoggerFactory.getLogger(Message.class);
   private final MessageSource messageSource;
 
   /**

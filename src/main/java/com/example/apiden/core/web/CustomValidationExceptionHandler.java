@@ -9,12 +9,8 @@ import jakarta.inject.Singleton;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 
-import com.example.apiden.core.infra.Constant;
-import com.example.apiden.core.infra.Message;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Handles validation errors (JSR-303/JSR-380) and converts them into the standard API envelope.
@@ -25,12 +21,20 @@ import java.util.stream.Collectors;
 final class CustomValidationExceptionHandler
     implements ExceptionHandler<ConstraintViolationException, HttpResponse<ResponseEnvelope>> {
 
-  private final Message messages;
-
-  CustomValidationExceptionHandler(final Message messages) {
-    this.messages = messages;
+  /**
+   * Constructs a new CustomValidationExceptionHandler.
+   */
+  CustomValidationExceptionHandler() {
   }
 
+  /**
+   * Handles the ConstraintViolationException and returns a formatted response.
+   *
+   * @param request   The current HTTP request.
+   * @param exception The caught constraint violation exception.
+   * @return A standard API response containing validation errors.
+   */
+  @SuppressWarnings("rawtypes")
   @Override
   public HttpResponse<ResponseEnvelope> handle(final HttpRequest request,
       final ConstraintViolationException exception) {
