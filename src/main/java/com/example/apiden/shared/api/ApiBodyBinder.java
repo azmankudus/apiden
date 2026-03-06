@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.example.apiden.shared.infrastructure.Constant;
+import com.example.apiden.shared.infrastructure.Context;
 
 import java.util.Optional;
 
@@ -37,8 +38,11 @@ public final class ApiBodyBinder
   public BindingResult<Object> bind(
       final ArgumentConversionContext<Object> context,
       final HttpRequest<?> source) {
-    return source.getAttribute(Constant.Attr.REQUEST_DATA, Object.class)
-        .flatMap(data -> conversionService.convert(data, context))
+    Object data = Context.get(Constant.Attr.REQUEST_DATA, (Object) null);
+    if (data == null) {
+      return ArgumentBinder.BindingResult.EMPTY;
+    }
+    return conversionService.convert(data, context)
         .map(val -> (BindingResult<Object>) () -> Optional.of(val))
         .orElse(ArgumentBinder.BindingResult.EMPTY);
   }

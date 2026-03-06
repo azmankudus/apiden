@@ -10,7 +10,6 @@ import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -65,26 +64,5 @@ public class HelloControllerTest {
     Map<String, Object> data = (Map<String, Object>) body.get("data");
     assertNotNull(data);
     assertEquals("nedipA", data.get("message")); // "Apiden" reversed
-  }
-
-  @Test
-  @SuppressWarnings("unchecked")
-  void testGetError() {
-    HttpRequest<?> request = HttpRequest.GET("/hello/error");
-
-    HttpClientResponseException thrown = assertThrows(HttpClientResponseException.class, () -> {
-      client.toBlocking().exchange(request, Argument.mapOf(String.class, Object.class));
-    });
-
-    assertEquals(400, thrown.getStatus().getCode());
-
-    Map<String, Object> body = (Map<String, Object>) thrown.getResponse().body();
-    assertNotNull(body, "Response body should not be null even on error");
-
-    // New envelope: {"errors": [...], "meta": {...}}
-    List<Map<String, Object>> errors = (List<Map<String, Object>>) body.get("errors");
-    assertNotNull(errors, "Expected 'errors' block in error response");
-    assertFalse(errors.isEmpty());
-    assertEquals("ERR-100", errors.get(0).get("code"));
   }
 }

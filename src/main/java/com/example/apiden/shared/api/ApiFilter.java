@@ -50,8 +50,6 @@ public final class ApiFilter {
   public void filterRequest(final HttpRequest<?> request, final MutablePropagatedContext mutableContext,
       @Nullable @Body String body) {
 
-    request.setAttribute(Constant.Attr.TIMESTAMP, OffsetDateTime.now());
-
     Object requestData = null;
     String clientTraceId = null;
     String clientTimestamp = null;
@@ -81,60 +79,68 @@ public final class ApiFilter {
       }
     }
 
-    if (requestData != null) {
-      request.setAttribute(Constant.Attr.REQUEST_DATA, requestData);
-    }
-
     if (clientTraceId == null) {
       clientTraceId = request.getHeaders().get(Constant.Attr.CONTEXT_TRACE_ID);
     }
 
     String serverTraceId = clientTraceId != null ? clientTraceId : UUID.randomUUID().toString();
 
+    // Store everything in the propagated context
     Map<String, Object> map = new ConcurrentHashMap<>();
+    map.put(Constant.Attr.TIMESTAMP, OffsetDateTime.now());
     map.put(Constant.Attr.CONTEXT_TRACE_ID, serverTraceId);
+    if (requestData != null) {
+      map.put(Constant.Attr.REQUEST_DATA, requestData);
+    }
     if (clientTraceId != null) {
       map.put(Constant.Attr.CLIENT_TRACE_ID, clientTraceId);
     }
     if (clientTimestamp != null) {
       map.put(Constant.Attr.CLIENT_TIMESTAMP, clientTimestamp);
     }
-
-    Context context = new Context(map);
-    mutableContext.add(context);
+    Context.init(map);
+    mutableContext.add(new Context(Context.getMap()));
   }
 
   @ResponseFilter
   public void filterResponse(final HttpRequest<?> request, final MutableHttpResponse<?> response) {
-    boolean includeMetadata = config.getBoolean(Constant.Config.INCLUDE_METADATA, true);
+    try {
+      boolean includeMetadata = config.getBoolean(Constant.Config.INCLUDE_METADATA, true);
 
-    final OffsetDateTime serverRequestTimestamp = request
-        .getAttribute(Constant.Attr.TIMESTAMP, OffsetDateTime.class)
-        .orElse(OffsetDateTime.now());
-
-    Map<String, Object> meta = null;
-    if (includeMetadata) {
-      meta = buildMeta(request, response, serverRequestTimestamp);
-    }
-
-    Object body = response.body();
-    if (body instanceof Optional<?> opt) {
-      body = opt.orElse(null);
-    }
-
-    if (body instanceof ResponseEnvelope existing) {
-      // Already a ResponseEnvelope (from ApiExceptionHandler) — augment meta
-      if (includeMetadata) {
-        Map<String, Object> mergedMeta = new LinkedHashMap<>();
-        if (existing.meta() != null) {
-          mergedMeta.putAll(existing.meta());
-        }
-        mergedMeta.putAll(meta);
-        response.body(new ResponseEnvelope(existing.data(), existing.errors(), mergedMeta));
+      OffsetDateTime serverRequestTimestamp;
+      try {
+        serverRequestTimestamp = Context.get(Constant.Attr.TIMESTAMP, OffsetDateTime.now());
+      } catch (IllegalStateException e) {
+        serverRequestTimestamp = OffsetDateTime.now();
       }
-    } else {
-      // Wrap raw body into the standard success envelope
-      response.body(new ResponseEnvelope(body, null, meta));
+
+      Map<String, Object> meta = null;
+      if (includeMetadata) {
+        meta = buildMeta(request, response, serverRequestTimestamp);
+      }
+
+      Object body = response.body();
+      if (body instanceof Optional<?> opt) {
+        body = opt.orElse(null);
+      }
+
+      if (body instanceof ResponseEnvelope existing) {
+        // Already a ResponseEnvelope (from ApiExceptionHandler) — augment meta
+        if (includeMetadata) {
+          Map<String, Object> mergedMeta = new LinkedHashMap<>();
+          if (existing.meta() != null) {
+            mergedMeta.putAll(existing.meta());
+          }
+          mergedMeta.putAll(meta);
+          response.body(new ResponseEnvelope(existing.data(), existing.errors(), mergedMeta));
+        }
+      } else {
+        // Wrap raw body into the standard success envelope
+        response.body(new ResponseEnvelope(body, null, meta));
+      }
+
+    } finally {
+      Context.destroy();
     }
   }
 

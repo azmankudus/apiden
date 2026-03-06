@@ -1,6 +1,5 @@
 package com.example.apiden.shared.infrastructure;
 
-import io.micronaut.core.propagation.PropagatedContext;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -18,14 +17,16 @@ public class ConfigManagerTest {
   ConfigManager configManager;
 
   /**
-   * Helper to run code within a propagated context (required by Message.get()).
+   * Helper to run code within a request context (required by Message.get()).
    */
   private void withContext(Runnable action) {
     Map<String, Object> data = new ConcurrentHashMap<>();
     data.put(Constant.Attr.CONTEXT_LANGUAGE, Locale.ENGLISH);
-    Context context = new Context(data);
-    try (PropagatedContext.Scope ignored = PropagatedContext.getOrEmpty().plus(context).propagate()) {
+    Context.init(data);
+    try {
       action.run();
+    } finally {
+      Context.destroy();
     }
   }
 

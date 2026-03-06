@@ -37,17 +37,4 @@ public final class HelloController {
   public Hello echo(@ApiBody final Hello hello) throws Exception {
     return new Hello(new StringBuilder(hello.message()).reverse().toString());
   }
-
-  @Get("/error")
-  @Produces(MediaType.APPLICATION_JSON)
-  public Hello throwError() throws Exception {
-    throw new ApplicationError("ERR-100");
-  }
-
-  @Post("/error")
-  @Consumes(MediaType.APPLICATION_JSON)
-  @Produces(MediaType.APPLICATION_JSON)
-  public Hello throwError(@ApiBody final Hello hello) throws Exception {
-    throw new ApplicationError("ERR-101");
-  }
 }
