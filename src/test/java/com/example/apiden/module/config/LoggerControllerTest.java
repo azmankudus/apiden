@@ -1,4 +1,4 @@
-package com.example.apiden.module.hello;
+package com.example.apiden.module.config;
 
 import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpRequest;
@@ -7,88 +7,103 @@ import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
-public class HelloLocaleTest {
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+public class LoggerControllerTest {
+
+  private static final Logger logger = LoggerFactory.getLogger(LoggerControllerTest.class);
 
   @Inject
   @Client("/")
   HttpClient client;
 
   @Test
+  @Order(1)
   @SuppressWarnings("unchecked")
-  void testGetHelloEnglish() {
-    HttpRequest<?> request = HttpRequest.GET("/hello").header("Accept-Language", "en");
+  void testGetAllLoggers() {
+    logger.info("Testing GET /logger.");
+    HttpRequest<?> request = HttpRequest.GET("/logger");
     HttpResponse<Map<String, Object>> response = client.toBlocking().exchange(request,
         Argument.mapOf(String.class, Object.class));
 
     assertEquals(200, response.status().getCode());
-
     Map<String, Object> body = response.body();
     Map<String, Object> data = (Map<String, Object>) body.get("data");
-    assertNotNull(data);
-    assertEquals("Hello World", data.get("message"));
+    assertNotNull(data, "Expected 'data' in response envelope");
   }
 
   @Test
+  @Order(2)
   @SuppressWarnings("unchecked")
-  void testGetHelloDefaultIfMissing() {
-    // No language header, should fallback to default (en)
-    HttpRequest<?> request = HttpRequest.GET("/hello");
+  void testGetLoggerByName() {
+    logger.info("Testing GET /logger/root.");
+    HttpRequest<?> request = HttpRequest.GET("/logger/root");
     HttpResponse<Map<String, Object>> response = client.toBlocking().exchange(request,
         Argument.mapOf(String.class, Object.class));
 
     assertEquals(200, response.status().getCode());
-
     Map<String, Object> body = response.body();
     Map<String, Object> data = (Map<String, Object>) body.get("data");
     assertNotNull(data);
-    assertEquals("Hello World", data.get("message"));
   }
 
   @Test
+  @Order(3)
   @SuppressWarnings("unchecked")
-  void testPostHelloWithDataEnvelope() {
-    // POST with data envelope
-    Map<String, Object> payload = Map.of(
-        "data", Map.of("message", "Apiden"));
+  void testUpdateLoggerLevel() {
+    logger.info("Testing PUT /logger/{name}.");
+    String loggerName = "com.example.apiden";
 
-    HttpRequest<?> request = HttpRequest.POST("/hello", payload);
+    // Payload wrapped in standard {"data": ...} envelope
+    Map<String, Object> payload = Map.of("data", "DEBUG");
+
+    HttpRequest<?> request = HttpRequest.PUT("/logger/" + loggerName, payload);
     HttpResponse<Map<String, Object>> response = client.toBlocking().exchange(request,
         Argument.mapOf(String.class, Object.class));
 
     assertEquals(200, response.status().getCode());
-
     Map<String, Object> body = response.body();
     Map<String, Object> data = (Map<String, Object>) body.get("data");
     assertNotNull(data);
-    assertEquals("nedipA", data.get("message")); // "Apiden" reversed
   }
 
   @Test
+  @Order(4)
   @SuppressWarnings("unchecked")
-  void testPostHelloWithMetaTraceId() {
-    // POST with client trace ID in meta
-    Map<String, Object> payload = Map.of(
-        "data", Map.of("message", "Apiden"),
-        "meta", Map.of("client_trace_id", "test-trace-123"));
+  void testNonExistentLoggerImplicitCreate() {
+    logger.info("Testing PUT /logger on a new deeper package.");
+    String loggerName = "com.example.apiden.deeper.package";
+    Map<String, Object> payload = Map.of("data", "TRACE");
 
-    HttpRequest<?> request = HttpRequest.POST("/hello", payload);
+    HttpRequest<?> request = HttpRequest.PUT("/logger/" + loggerName, payload);
     HttpResponse<Map<String, Object>> response = client.toBlocking().exchange(request,
         Argument.mapOf(String.class, Object.class));
 
     assertEquals(200, response.status().getCode());
-
     Map<String, Object> body = response.body();
-    Map<String, Object> meta = (Map<String, Object>) body.get("meta");
-    assertNotNull(meta);
-    // The client trace ID should be echoed back in the meta
-    assertEquals("test-trace-123", meta.get("client_trace_id"));
-    assertEquals("test-trace-123", meta.get("server_request_trace_id"));
+    Map<String, Object> data = (Map<String, Object>) body.get("data");
+    assertNotNull(data);
+  }
+
+  @Test
+  @Order(5)
+  void testRestoreLogLevel() {
+    logger.info("Restoring log level.");
+    String loggerName = "com.example.apiden";
+    Map<String, Object> payload = Map.of("data", "INFO");
+
+    client.toBlocking().exchange(HttpRequest.PUT("/logger/" + loggerName, payload),
+        Argument.mapOf(String.class, Object.class));
   }
 }

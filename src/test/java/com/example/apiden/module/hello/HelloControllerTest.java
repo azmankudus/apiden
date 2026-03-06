@@ -1,5 +1,6 @@
 package com.example.apiden.module.hello;
 
+import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.client.HttpClient;
@@ -9,13 +10,11 @@ import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Unit tests for HelloController verifying both domain logic and the custom API mechanism (Envelope).
- */
 @MicronautTest
 public class HelloControllerTest {
 
@@ -28,41 +27,34 @@ public class HelloControllerTest {
   void testGetHello() {
     HttpRequest<?> request = HttpRequest.GET("/hello");
     HttpResponse<Map<String, Object>> response = client.toBlocking().exchange(request,
-        io.micronaut.core.type.Argument.mapOf(String.class, Object.class));
+        Argument.mapOf(String.class, Object.class));
 
     assertEquals(200, response.status().getCode());
 
     Map<String, Object> body = response.body();
     assertNotNull(body, "Response body should not be null");
 
-    Map<String, Object> server = (Map<String, Object>) body.get("server");
-    assertNotNull(server, "Expected 'server' block in the API envelope");
+    // New envelope: {"data": {...}, "meta": {...}}
+    Map<String, Object> data = (Map<String, Object>) body.get("data");
+    assertNotNull(data, "Expected 'data' block in the response envelope");
+    assertEquals("Hello World", data.get("message"));
 
-    Map<String, Object> serverResponse = (Map<String, Object>) server.get("response");
-    assertNotNull(serverResponse, "Expected 'response' block inside 'server'");
-
-    assertEquals("success", serverResponse.get("status"));
-    assertEquals("0", serverResponse.get("code"));
-    assertEquals("Success", serverResponse.get("message"));
-
-    Map<String, Object> actualData = (Map<String, Object>) serverResponse.get("body");
-    assertEquals("Hello World", actualData.get("message"));
+    // Meta should be present when include-metadata is true
+    assertNotNull(body.get("meta"), "Expected 'meta' block in the response envelope");
   }
 
   @Test
   @SuppressWarnings("unchecked")
   void testPostHello() {
-    // Wrap payload in client.request.body envelope so ApiBodyBinder works properly
+    // Wrap payload in {"data": ...} envelope so ApiBodyBinder works properly
     Map<String, Object> payload = Map.of(
-        "client", Map.of(
-            "request", Map.of(
-                "body", Map.of("message", "Apiden"))));
+        "data", Map.of("message", "Apiden"));
 
     HttpRequest<?> request = HttpRequest.POST("/hello", payload);
     Map<String, Object> body;
     try {
       HttpResponse<Map<String, Object>> response = client.toBlocking().exchange(request,
-          io.micronaut.core.type.Argument.mapOf(String.class, Object.class));
+          Argument.mapOf(String.class, Object.class));
       assertEquals(200, response.status().getCode());
       body = response.body();
     } catch (HttpClientResponseException e) {
@@ -70,13 +62,9 @@ public class HelloControllerTest {
       throw e;
     }
 
-    Map<String, Object> server = (Map<String, Object>) body.get("server");
-    Map<String, Object> serverResponse = (Map<String, Object>) server.get("response");
-
-    assertEquals("success", serverResponse.get("status"));
-
-    Map<String, Object> actualData = (Map<String, Object>) serverResponse.get("body");
-    assertEquals("nedipA", actualData.get("message")); // "Apiden" reversed
+    Map<String, Object> data = (Map<String, Object>) body.get("data");
+    assertNotNull(data);
+    assertEquals("nedipA", data.get("message")); // "Apiden" reversed
   }
 
   @Test
@@ -85,18 +73,18 @@ public class HelloControllerTest {
     HttpRequest<?> request = HttpRequest.GET("/hello/error");
 
     HttpClientResponseException thrown = assertThrows(HttpClientResponseException.class, () -> {
-      client.toBlocking().exchange(request, io.micronaut.core.type.Argument.mapOf(String.class, Object.class));
+      client.toBlocking().exchange(request, Argument.mapOf(String.class, Object.class));
     });
 
-    assertEquals(500, thrown.getStatus().getCode());
+    assertEquals(400, thrown.getStatus().getCode());
 
     Map<String, Object> body = (Map<String, Object>) thrown.getResponse().body();
     assertNotNull(body, "Response body should not be null even on error");
 
-    Map<String, Object> server = (Map<String, Object>) body.get("server");
-    Map<String, Object> serverResponse = (Map<String, Object>) server.get("response");
-
-    assertEquals("error", serverResponse.get("status"));
-    assertEquals("ERR-100", serverResponse.get("code"));
+    // New envelope: {"errors": [...], "meta": {...}}
+    List<Map<String, Object>> errors = (List<Map<String, Object>>) body.get("errors");
+    assertNotNull(errors, "Expected 'errors' block in error response");
+    assertFalse(errors.isEmpty());
+    assertEquals("ERR-100", errors.get(0).get("code"));
   }
 }

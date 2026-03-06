@@ -13,7 +13,6 @@ public record Context(Map<String, Object> data) implements ThreadPropagatedConte
   @Override
   public @Nullable Map<String, String> updateThreadContext() {
     Map<String, String> oldState = MDC.getCopyOfContextMap();
-    // Batch sync all dynamic keys to SLF4J MDC
     data.forEach((k, v) -> MDC.put(k, v.toString()));
     return oldState;
   }

@@ -1,22 +1,20 @@
-package com.example.apiden.shared.api;
+package com.example.apiden.shared.infrastructure;
 
 /**
  * Registry for keys and non-localizable constants.
- * User-facing strings should be resolved via MessageSource using the keys defined in ApiConstants.Msg.
+ * User-facing strings should be resolved via MessageSource using the keys
+ * defined in ApiConstants.Msg.
  */
-public final class ApiConstants {
+public final class Constant {
 
-  private ApiConstants() {
+  private Constant() {
     // Prevent instantiation
   }
 
   /** Configuration property keys (These are technical, not localized). */
   public static final class Config {
-    public static final String INCLUDE_CLIENT_HEADERS = "application.api.envelope.include-client-headers";
-    public static final String INCLUDE_SERVER_HEADERS = "application.api.envelope.include-server-headers";
-    public static final String INCLUDE_STACKTRACE = "application.api.envelope.include-stacktrace";
-    public static final String INCLUDE_CLIENT_INFO = "application.api.envelope.include-client-info";
-    public static final String INCLUDE_SERVER_INFO = "application.api.envelope.include-server-info";
+    public static final String INCLUDE_METADATA = "application.api.response.include-metadata";
+    public static final String INCLUDE_STACKTRACE = "application.api.response.include-stacktrace";
     public static final String LIVE_UPDATE_ENABLED = "application.configuration.live-update.enabled";
     public static final String LIVE_UPDATE_LIST = "application.configuration.live-update.list";
     public static final String INSTANCE_NAME = "application.instance.name";
@@ -27,10 +25,31 @@ public final class ApiConstants {
   public static final class Attr {
     public static final String ENVELOPE = "api_envelope";
     public static final String TIMESTAMP = "server_request_timestamp";
-    public static final String TRACE_ID = "server_trace_id";
+    public static final String REQUEST_DATA = "api_request_data";
     public static final String CONTEXT_TRACE_ID = "traceid";
     public static final String CONTEXT_LANGUAGE = "language";
-    public static final String LOCALE = "server_resolved_locale";
+    public static final String CLIENT_TRACE_ID = "client_trace_id";
+    public static final String CLIENT_TIMESTAMP = "client_request_timestamp";
+  }
+
+  /** JSON field names for the envelope. */
+  public static final class Envelope {
+    public static final String DATA = "data";
+    public static final String ERRORS = "errors";
+    public static final String META = "meta";
+  }
+
+  /** Metadata field names. */
+  public static final class Meta {
+    public static final String CLIENT_REQUEST_TIMESTAMP = "client_request_timestamp";
+    public static final String CLIENT_TRACE_ID = "client_trace_id";
+    public static final String SERVER_API_URL = "server_api_url";
+    public static final String SERVER_REQUEST_TIMESTAMP = "server_request_timestamp";
+    public static final String SERVER_REQUEST_TRACE_ID = "server_request_trace_id";
+    public static final String SERVER_RESPONSE_TIMESTAMP = "server_response_timestamp";
+    public static final String SERVER_RESPONSE_DURATION = "server_response_duration";
+    public static final String SERVER_RESPONSE_HTTP_STATUS = "server_response_http_status";
+    public static final String SERVER_RESPONSE_EXCEPTION_STACKTRACE = "server_response_exception_stacktrace";
   }
 
   /** Common status codes. */
@@ -77,17 +96,6 @@ public final class ApiConstants {
     public static final String BODY = "body";
     public static final String TIMESTAMP = "timestamp";
     public static final String DURATION = "duration";
-  }
-
-  /** Keys for Client and Server metadata info blocks. */
-  public static final class Info {
-    public static final String BROWSER = "browser";
-    public static final String OS = "os";
-    public static final String IP = "ip";
-    public static final String FORWARDED_IP = "forwardedip";
-    public static final String INSTANCE = "instance";
-    public static final String HOSTNAME = "hostname";
-    public static final String RUNTIME = "runtime";
   }
 
   /** Literal keys for localization. */

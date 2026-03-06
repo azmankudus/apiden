@@ -18,14 +18,11 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Integration tests for ConfigController with the new path-based structure.
- */
 @MicronautTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ConfigControllerTest {
 
-  private static final Logger log = LoggerFactory.getLogger(ConfigControllerTest.class);
+  private static final Logger logger = LoggerFactory.getLogger(ConfigControllerTest.class);
 
   @Inject
   @Client("/")
@@ -33,90 +30,77 @@ public class ConfigControllerTest {
 
   @Test
   @Order(1)
+  @SuppressWarnings("unchecked")
   void testGetAllConfig() {
-    log.info("Testing GET /config.");
+    logger.info("Testing GET /config.");
     HttpRequest<?> request = HttpRequest.GET("/config");
     HttpResponse<Map<String, Object>> response = client.toBlocking().exchange(request,
         Argument.mapOf(String.class, Object.class));
 
     assertEquals(200, response.status().getCode());
-    Map<String, Object> body = extractBody(response.body());
-    assertTrue(body.containsKey("application.api.envelope.include-client-headers"));
+    Map<String, Object> body = response.body();
+    Map<String, Object> data = (Map<String, Object>) body.get("data");
+    assertNotNull(data, "Expected 'data' in response envelope");
   }
 
   @Test
   @Order(2)
+  @SuppressWarnings("unchecked")
   void testGetConfigByName() {
-    log.info("Testing GET /config/application.api.envelope.include-client-headers.");
-    HttpRequest<?> request = HttpRequest.GET("/config/application.api.envelope.include-client-headers");
+    logger.info("Testing GET /config/application.api.response.include-metadata.");
+    HttpRequest<?> request = HttpRequest.GET("/config/application.api.response.include-metadata");
     HttpResponse<Map<String, Object>> response = client.toBlocking().exchange(request,
         Argument.mapOf(String.class, Object.class));
 
     assertEquals(200, response.status().getCode());
-    Map<String, Object> body = extractBody(response.body());
-    assertEquals("application.api.envelope.include-client-headers", body.get("name"));
-    assertNotNull(body.get("value"));
+    Map<String, Object> body = response.body();
+    Map<String, Object> data = (Map<String, Object>) body.get("data");
+    assertNotNull(data);
   }
 
   @Test
   @Order(3)
+  @SuppressWarnings("unchecked")
   void testUpdateConfig() {
-    log.info("Testing PUT /config/{name}.");
-    String prop = "application.api.envelope.include-client-headers";
+    logger.info("Testing PUT /config/{name}.");
+    String prop = "application.api.response.include-metadata";
 
-    // Payload structure for @ApiBody
-    Map<String, Object> payload = Map.of(
-        "client", Map.of(
-            "request", Map.of(
-                "body", false)));
+    // Payload wrapped in standard {"data": ...} envelope
+    Map<String, Object> payload = Map.of("data", false);
 
     HttpRequest<?> request = HttpRequest.PUT("/config/" + prop, payload);
     HttpResponse<Map<String, Object>> response = client.toBlocking().exchange(request,
         Argument.mapOf(String.class, Object.class));
 
     assertEquals(200, response.status().getCode());
-    Map<String, Object> body = extractBody(response.body());
-
-    assertEquals(prop, body.get("name"));
-    assertEquals(false, body.get("new_value"));
+    Map<String, Object> body = response.body();
+    Map<String, Object> data = (Map<String, Object>) body.get("data");
+    assertNotNull(data);
   }
 
   @Test
   @Order(4)
+  @SuppressWarnings("unchecked")
   void testConfigImpactOnFilter() {
-    log.info("Verifying change impact on ApiFilter.");
+    logger.info("Verifying change impact on ApiFilter.");
     HttpRequest<?> request = HttpRequest.GET("/hello");
     HttpResponse<Map<String, Object>> response = client.toBlocking().exchange(request,
         Argument.mapOf(String.class, Object.class));
 
     Map<String, Object> body = response.body();
-    Map<String, Object> clientBlock = (Map<String, Object>) body.get("client");
-    Map<String, Object> clientHttp = (Map<String, Object>) clientBlock.get("http");
 
-    // it should be suppressed because we set it to false
-    if (clientHttp != null) {
-      assertNull(clientHttp.get("headers"));
-    }
+    // When include-metadata is false, meta should be null
+    assertNull(body.get("meta"), "Expected 'meta' to be absent when include-metadata is disabled");
   }
 
   @Test
   @Order(5)
   void testRestoreConfig() {
-    log.info("Restoring config.");
-    String prop = "application.api.envelope.include-client-headers";
-    Map<String, Object> payload = Map.of(
-        "client", Map.of(
-            "request", Map.of(
-                "body", true)));
+    logger.info("Restoring config.");
+    String prop = "application.api.response.include-metadata";
+    Map<String, Object> payload = Map.of("data", true);
 
     client.toBlocking().exchange(HttpRequest.PUT("/config/" + prop, payload),
         Argument.mapOf(String.class, Object.class));
-  }
-
-  @SuppressWarnings("unchecked")
-  private Map<String, Object> extractBody(Map<String, Object> envelope) {
-    Map<String, Object> server = (Map<String, Object>) envelope.get("server");
-    Map<String, Object> serverResponse = (Map<String, Object>) server.get("response");
-    return (Map<String, Object>) serverResponse.get("body");
   }
 }

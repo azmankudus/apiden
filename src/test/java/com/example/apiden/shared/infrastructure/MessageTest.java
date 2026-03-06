@@ -1,12 +1,13 @@
 package com.example.apiden.shared.infrastructure;
 
+import io.micronaut.core.propagation.PropagatedContext;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import com.example.apiden.shared.api.ApiConstants;
-
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -16,34 +17,52 @@ public class MessageTest {
   @Inject
   Message message;
 
-  @Inject
-  Context context;
-
   @Test
   void testResolveDefault() {
-    // Should resolve to English if system default is en
-    String msg = message.get("msg.success");
-    assertEquals("Success", msg);
+    Map<String, Object> data = new ConcurrentHashMap<>();
+    data.put(Constant.Attr.CONTEXT_LANGUAGE, Locale.ENGLISH);
+    Context context = new Context(data);
+
+    try (PropagatedContext.Scope ignored = PropagatedContext.getOrEmpty().plus(context).propagate()) {
+      String msg = message.get("msg.success");
+      assertEquals("Success", msg);
+    }
   }
 
   @Test
   void testResolveMalay() {
-    context.set(ApiConstants.Attr.CONTEXT_LANGUAGE, Locale.of("ms"));
-    String msg = message.get("msg.success");
-    assertEquals("Berjaya", msg);
+    Map<String, Object> data = new ConcurrentHashMap<>();
+    data.put(Constant.Attr.CONTEXT_LANGUAGE, Locale.of("ms"));
+    Context context = new Context(data);
+
+    try (PropagatedContext.Scope ignored = PropagatedContext.getOrEmpty().plus(context).propagate()) {
+      String msg = message.get("msg.success");
+      assertEquals("Berjaya", msg);
+    }
   }
 
   @Test
-  void testResolveWithParameters() {
-    context.set(ApiConstants.Attr.CONTEXT_LANGUAGE, Locale.of("ms"));
-    String msg = message.get("msg.invalid.log.level");
-    assertEquals("Aras log tidak sah: SUPER_TRACE", msg);
+  void testResolveMalayLabel() {
+    Map<String, Object> data = new ConcurrentHashMap<>();
+    data.put(Constant.Attr.CONTEXT_LANGUAGE, Locale.of("ms"));
+    Context context = new Context(data);
+
+    try (PropagatedContext.Scope ignored = PropagatedContext.getOrEmpty().plus(context).propagate()) {
+      String msg = message.get("label.hello.world");
+      assertEquals("Hai Dunia", msg);
+    }
   }
 
   @Test
   void testResolveNotFound() {
-    String key = "non.existent.key";
-    String msg = message.get(key);
-    assertEquals(key, msg);
+    Map<String, Object> data = new ConcurrentHashMap<>();
+    data.put(Constant.Attr.CONTEXT_LANGUAGE, Locale.ENGLISH);
+    Context context = new Context(data);
+
+    try (PropagatedContext.Scope ignored = PropagatedContext.getOrEmpty().plus(context).propagate()) {
+      String key = "non.existent.key";
+      String msg = message.get(key);
+      assertEquals(key, msg);
+    }
   }
 }
