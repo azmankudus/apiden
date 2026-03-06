@@ -1,28 +1,25 @@
-client
-  http
-    headers = Map<String, List<String>>
-  request
-    traceid = UUID
-    timestamp = ISO_OFFSET_DATE_TIME
-    language = String
-    body = Object
-  response
-    timestamp = ISO_OFFSET_DATE_TIME
-    duration = ISO_DURATION
-  info = Map<String, Object>
-server
-  http
-    status = Integer
-    headers = Map<String, List<String>>
-  request
-    timestamp = ISO_OFFSET_DATE_TIME
-    traceid = UUID
-  response
-    timestamp = ISO_OFFSET_DATE_TIME
-    duration = ISO_DURATION
-    language = String
-    status = <success|warning|error>
-    code = String
-    message = String
-    body = Object
-  info = Map<String, Object>
+Basic API request and response structure
+
+1. client request = {"data": { <DATA> }}
+2. server response ok = {"data": { <DATA> }}
+3. server response error = {"errors": [{"code": "<ERROR_CODE>", "message": "", "detail" }]}
+
+Optional information or metadata can be added into "meta" element.
+, next to "data" or "error". With easy switches like include_metadata and include_exception_stacktrace.
+
+When include_metadata is enabled
+1. Client request will be included the follwing metadata.
+   "client_request_timestmap": "<ISO_OFFSET_DATE_TIME>"
+   "client_trace_id": "<UUID>"
+
+2. Server response will be included the follwing metadata.
+<copy_of_client_metadata>
+"server_api_url": "<SERVER_API_VERSION>"
+"server_request_timestamp": "<ISO_OFFSET_DATE_TIME>"
+"server_request_trace_id": "<CLIENT_UUID_OR_NEW_UUID>"
+"server_response_timestamp": "<ISO_OFFSET_DATE_TIME>"
+"server_response_duration": "<ISO_DURATION>"
+"server_response_http_status": "<HTTP_CODE> <HTTP_NAME>"
+
+When include_stacktrace is enabled, server response will be included with the following metadata.
+"server_response_exception_stacktrace": "<EXCEPTIION_STACKTRACE>"
