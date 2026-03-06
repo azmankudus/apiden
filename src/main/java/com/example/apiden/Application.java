@@ -1,12 +1,8 @@
 package com.example.apiden;
 
 import io.micronaut.runtime.Micronaut;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class Application {
-
-  private static final Logger logger = LoggerFactory.getLogger(Application.class);
 
   Application() {
   }

@@ -28,7 +28,7 @@ dependencies {
 }
 
 application {
-    mainClass = "com.example.apiden.Main"
+    mainClass = "com.example.apiden.Application"
 }
 
 java {

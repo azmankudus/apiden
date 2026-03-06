@@ -1,0 +1,137 @@
+package com.example.apiden.core.infra;
+
+import io.micronaut.context.annotation.Value;
+import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
+
+/**
+ * Holds static server information captured at startup.
+ */
+@Singleton
+public final class ServerInfo {
+
+  private static final Logger logger = LoggerFactory.getLogger(ServerInfo.class);
+
+  private final String instanceName;
+  private final String os;
+  private final String runtime;
+  private final String ip;
+
+  ServerInfo(
+      @Value("${application.instance.name:apiden}") final String instanceName,
+      @Value("${micronaut.server.host:}") final String serverHost) {
+    this.instanceName = instanceName;
+    this.os = resolveOs();
+    this.runtime = System.getProperty("java.vendor") + " " + System.getProperty("java.version");
+    this.ip = resolveIp(serverHost);
+
+    logger.info("ServerInfo initialized: instance={}, os={}, runtime={}, ip={}",
+        instanceName, os, runtime, ip);
+  }
+
+  private String resolveIp(final String host) {
+    if (host == null || host.isBlank() || "localhost".equalsIgnoreCase(host) || "0.0.0.0".equals(host)) {
+      return getLocalIp();
+    }
+    try {
+      final InetAddress addr = InetAddress.getByName(host);
+      final String hostIp = addr.getHostAddress();
+      if (host.equals(hostIp)) {
+        return hostIp;
+      } else {
+        return hostIp + " (" + host + ")";
+      }
+    } catch (final Exception e) {
+      return getLocalIp();
+    }
+  }
+
+  private String getLocalIp() {
+    try {
+      final Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+      while (interfaces.hasMoreElements()) {
+        final NetworkInterface iface = interfaces.nextElement();
+        if (iface.isLoopback() || !iface.isUp() || iface.isVirtual()) {
+          continue;
+        }
+        final Enumeration<InetAddress> addresses = iface.getInetAddresses();
+        while (addresses.hasMoreElements()) {
+          final InetAddress addr = addresses.nextElement();
+          if (addr instanceof java.net.Inet4Address) {
+            return addr.getHostAddress();
+          }
+        }
+      }
+    } catch (final SocketException e) {
+      logger.error("Failed to resolve local IP", e);
+    }
+    return "127.0.0.1";
+  }
+
+  private String resolveOs() {
+    final String osName = System.getProperty("os.name");
+    final String osVersion = System.getProperty("os.version");
+
+    if (osName.toLowerCase().contains("linux")) {
+      final Path osRelease = Paths.get("/etc/os-release");
+      if (Files.exists(osRelease)) {
+        try (final BufferedReader reader = Files.newBufferedReader(osRelease)) {
+          String line;
+          while ((line = reader.readLine()) != null) {
+            if (line.startsWith("PRETTY_NAME=")) {
+              String prettyName = line.substring(12);
+              if (prettyName.startsWith("\"") && prettyName.endsWith("\"")) {
+                prettyName = prettyName.substring(1, prettyName.length() - 1);
+              }
+              return prettyName + " (Linux " + osVersion + ")";
+            }
+          }
+        } catch (final Exception e) {
+          logger.trace("Failed to read /etc/os-release: {}", e.getMessage());
+        }
+      }
+    } else if (osName.toLowerCase().contains("windows")) {
+      try {
+        final Process process = new ProcessBuilder("cmd", "/c", "ver").start();
+        try (final BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+          final String line = reader.lines().filter(l -> !l.isBlank()).findFirst().orElse("");
+          if (!line.isEmpty()) {
+            return line;
+          }
+        }
+      } catch (final Exception e) {
+        logger.trace("Failed to execute ver command: {}", e.getMessage());
+      }
+    }
+
+    return osName + " " + osVersion;
+  }
+
+  public String getInstanceName() {
+    return instanceName;
+  }
+
+  public String getOs() {
+    return os;
+  }
+
+  public String getRuntime() {
+    return runtime;
+  }
+
+  public String getIp() {
+    return ip;
+  }
+}

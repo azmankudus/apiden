@@ -4,22 +4,37 @@ Basic API request and response structure
 2. server response ok = {"data": { <DATA> }}
 3. server response error = {"errors": [{"code": "<ERROR_CODE>", "message": "", "detail" }]}
 
-Optional information or metadata can be added into "meta" element.
-, next to "data" or "error". With easy switches like include_metadata and include_exception_stacktrace.
+Optional information or metadata can be added into "meta" element, next to "data" or "error".
+With easy switches like
+- include_metadata
+- include_exception_stacktrace
+- include_environment_info.
 
 When include_metadata is enabled
-1. Client request will be included the follwing metadata.
-   "client_request_timestmap": "<ISO_OFFSET_DATE_TIME>"
-   "client_trace_id": "<UUID>"
+- Client request will be included the follwing metadata.
+  - "client_request_timestmap": client request timestamp in ISO offset date time format
+  - "client_trace_id": client request trace id in UUID format
 
-2. Server response will be included the follwing metadata.
-<copy_of_client_metadata>
-"server_api_url": "<SERVER_API_VERSION>"
-"server_request_timestamp": "<ISO_OFFSET_DATE_TIME>"
-"server_request_trace_id": "<CLIENT_UUID_OR_NEW_UUID>"
-"server_response_timestamp": "<ISO_OFFSET_DATE_TIME>"
-"server_response_duration": "<ISO_DURATION>"
-"server_response_http_status": "<HTTP_CODE> <HTTP_NAME>"
+- Server response will be included the follwing metadata.
+  - copy of client metadata
+  - "server_url_path": request url path
+  - "server_request_timestamp": timestamp at the beginning of request filter, in ISO offset date time format
+  - "server_request_trace_id": client trace_id or new UUID
+  - "server_response_timestamp": timestamp at the end of response filter, in ISO offset date time format
+  - "server_response_duration": duration between server request and response time, is ISO duration format
+  - "server_response_http_status": http code and status name
 
 When include_stacktrace is enabled, server response will be included with the following metadata.
-"server_response_exception_stacktrace": "<EXCEPTIION_STACKTRACE>"
+- "server_response_exception_stacktrace": exception stacktrace
+
+When include_environment_info is enabled, server response will be included with the following metadata.
+- "client_agent": from user agent header at request filter
+- "client_os": from user agent header at request filter
+- "client_ip": request ip at request filter
+- "client_actual_ip": from x-forwarded-for header at request filter
+- "server_instance_name": from static information loaded at startup, value of application.instance.name
+- "server_os": from static information loaded at startup, actual os name
+- "server_runtime": from static information loaded at startup, java vendor and version
+- "server_ip": from static information loaded at startup, micronaut.server.host.
+               if not ip, resolve and append to the back of the ip.
+               if not specified, get first non loopback or virtual ip address of the server".
