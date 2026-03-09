@@ -1,0 +1,179 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "APIDEN Project Traceability Schema",
+  "type": "object",
+  "properties": {
+    "project": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "lead": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "epics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^APIDEN-E[0-9]{2}$"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "description": {
+            "type": "string"
+          },
+          "success_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^APIDEN-F[0-9]{4}$"
+                },
+                "name": {
+                  "type": "string",
+                  "maxLength": 30
+                },
+                "success_criteria": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "stories": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^APIDEN-S[0-9]{6}$"
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 30
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "success_criteria": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "tasks": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "pattern": "^APIDEN-T[0-9]{8}$"
+                            },
+                            "name": {
+                              "type": "string",
+                              "maxLength": 50
+                            },
+                            "success_criterion": {
+                              "type": "string"
+                            },
+                            "unit_tests": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "scenario": {
+                                    "type": "string"
+                                  },
+                                  "input": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "operator": {
+                                    "enum": [
+                                      "EQUALS",
+                                      "STARTS_WITH",
+                                      "ENDS_WITH",
+                                      "CONTAINS",
+                                      "MATCHES_REGEX",
+                                      "IS_NULL",
+                                      "IS_NOT_NULL",
+                                      "IS_EMPTY",
+                                      "IS_BLANK"
+                                    ]
+                                  },
+                                  "expected": {
+                                    "type": "string"
+                                  },
+                                  "ignore_case": {
+                                    "type": "boolean",
+                                    "default": false
+                                  }
+                                },
+                                "required": [
+                                  "scenario",
+                                  "operator"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "success_criterion",
+                            "unit_tests"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "success_criteria",
+                      "tasks"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "success_criteria",
+                "stories"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "success_criteria",
+          "features"
+        ]
+      }
+    }
+  },
+  "required": [
+    "project",
+    "epics"
+  ]
+}

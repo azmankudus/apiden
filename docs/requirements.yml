@@ -1,0 +1,153 @@
+project:
+  id: APIDEN
+  lead: Vibe
+epics:
+- id: APIDEN-E01
+  name: Core Infrastructure
+  description: Fundamental components for configuration and internationalization.
+  success_criteria:
+  - All core services are initialized and testable.
+  - Configuration can be updated dynamically at runtime.
+  features:
+  - id: APIDEN-F0101
+    name: Config Management
+    success_criteria:
+    - Properties can be retrieved individually or as a map.
+    - Secure update mechanism for allowed parameters.
+    stories:
+    - id: APIDEN-S010101
+      name: Get single config property
+      description: Retrieve a configuration value by its unique key.
+      success_criteria:
+      - Returns the exact object stored for the given key.
+      tasks:
+      - id: APIDEN-T01010101
+        name: Get Config Value
+        success_criterion: It returns the correct config.
+        unit_tests:
+        - scenario: Valid Key
+          input: application.api.response.include-metadata
+          operator: IS_NOT_NULL
+          expected: ''
+        - scenario: Invalid Key
+          input: non.existent
+          operator: IS_NULL
+          expected: ''
+  - id: APIDEN-F0102
+    name: Message Resolution
+    success_criteria:
+    - Messages are resolved correctly.
+    stories:
+    - id: APIDEN-S010201
+      name: Resolve Message
+      description: Resolve internationalized messages based on key.
+      success_criteria:
+      - Correct translation is returned.
+      tasks:
+      - id: APIDEN-T01020101
+        name: Resolve Specific Locale
+        success_criterion: Returns corresponding string for key.
+        unit_tests:
+        - scenario: Valid English
+          input: core.success
+          operator: EQUALS
+          expected: Success
+        - scenario: Invalid Key
+          input: missing.key
+          operator: EQUALS
+          expected: missing.key
+- id: APIDEN-E02
+  name: Hello API
+  description: Sample endpoints demonstrating REST conventions.
+  success_criteria:
+  - Basic GET and POST operations work with standard response structure.
+  features:
+  - id: APIDEN-F0201
+    name: Hello Controller
+    success_criteria:
+    - Responds with greeting message and metadata.
+    stories:
+    - id: APIDEN-S020101
+      name: GET greeting response
+      description: Simple GET request to hello world endpoint.
+      success_criteria:
+      - Returns 200 OK with message.
+      tasks:
+      - id: APIDEN-T02010101
+        name: Get Default Hello
+        success_criterion: Returns default greeting.
+        unit_tests:
+        - scenario: Valid GET Hello
+          input: /api/hello
+          operator: EQUALS
+          expected: Hello World
+      - id: APIDEN-T02010102
+        name: Get Locale Greeting
+        success_criterion: Returns localized greeting based on input.
+        unit_tests:
+        - scenario: Valid English Locale
+          input: en
+          operator: EQUALS
+          expected: Hello World
+        - scenario: Valid Malay Locale
+          input: ms
+          operator: EQUALS
+          expected: Hai Dunia
+    - id: APIDEN-S020102
+      name: POST echo response
+      description: Echo the payload message back to the client.
+      success_criteria:
+      - Returns the reversed string.
+      tasks:
+      - id: APIDEN-T02010201
+        name: Echo Payload
+        success_criterion: Returns reversed input string.
+        unit_tests:
+        - scenario: Valid Payload Apiden
+          input: Apiden
+          operator: EQUALS
+          expected: nedipA
+        - scenario: Valid Payload Vibe
+          input: Vibe
+          operator: EQUALS
+          expected: ebiV
+- id: APIDEN-E04
+  name: Resilience API
+  description: Resilience endpoints demonstrating Circuit Breaker, Retry, Bulkhead,
+    etc.
+  success_criteria:
+  - Fault tolerance methods are executed correctly.
+  features:
+  - id: APIDEN-F0401
+    name: Resilience Endpoints
+    success_criteria:
+    - All resilience endpoints return resilient responses.
+    stories:
+    - id: APIDEN-S040101
+      name: Retry Logic
+      description: Test the retry mechanism.
+      success_criteria:
+      - Returns successful or fallback appropriately.
+      tasks:
+      - id: APIDEN-T04010101
+        name: Retry Success Path
+        success_criterion: Returns 200 OK without errors.
+        unit_tests:
+        - scenario: Valid Retry Call
+          input: /api/resilience/retry
+          operator: CONTAINS
+          expected: success
+    - id: APIDEN-S040102
+      name: Circuit Breaker
+      description: Test Circuit Breaker patterns.
+      success_criteria:
+      - Circuit breaks upon repeated simulated errors.
+      tasks:
+      - id: APIDEN-T04010201
+        name: Circuit Breaker Success
+        success_criterion: Returns 200 OK without errors.
+        unit_tests:
+        - scenario: Valid Circuit Breaker
+          input: /api/resilience/circuit-breaker
+          operator: CONTAINS
+          expected: success

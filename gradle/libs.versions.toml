@@ -1,12 +1,15 @@
 [versions]
-micronaut-plugins = "4.6.2"
-shadow = "8.3.9"
-resilience4j = "2.2.0"
+plugin-micronaut = "4.6.2"
+plugin-shadow = "8.3.9"
+plugin-allure = "3.0.2"
+resilience4j = "2.3.0"
+allure = "2.33.0"
 
 [plugins]
-micronaut-aot = { id = "io.micronaut.aot", version.ref = "micronaut-plugins" }
-micronaut-application = { id = "io.micronaut.application", version.ref = "micronaut-plugins" }
-shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
+micronaut-aot = { id = "io.micronaut.aot", version.ref = "plugin-micronaut" }
+micronaut-application = { id = "io.micronaut.application", version.ref = "plugin-micronaut" }
+shadow = { id = "com.gradleup.shadow", version.ref = "plugin-shadow" }
+allure = { id = "io.qameta.allure", version.ref = "plugin-allure" }
 
 [libraries]
 # Core
@@ -39,3 +42,4 @@ micronaut-sourcegen-generator-java = { module = "io.micronaut.sourcegen:micronau
 
 # Testing
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+allure-junit5 = { module = "io.qameta.allure:allure-junit5", version.ref = "allure" }

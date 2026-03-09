@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.micronaut.application)
     alias(libs.plugins.micronaut.aot)
     alias(libs.plugins.shadow)
+    alias(libs.plugins.allure)
 }
 
 version = "0.1"
@@ -17,6 +18,7 @@ dependencies {
     annotationProcessor(libs.micronaut.sourcegen.generator.java)
     annotationProcessor(libs.micronaut.openapi)
     annotationProcessor(libs.micronaut.validation.processor)
+    annotationProcessor(libs.resilience4j.micronaut)
 
     implementation(libs.micronaut.serde.jackson)
     implementation(libs.micronaut.sourcegen.annotations)
@@ -31,7 +33,7 @@ dependencies {
     compileOnly(libs.micronaut.http.client)
     
     testImplementation(libs.micronaut.http.client)
-    testImplementation(libs.archunit.junit5)
+    testImplementation(libs.allure.junit5)
 
     testRuntimeOnly(libs.junit.platform.launcher)
 }
@@ -61,5 +63,19 @@ micronaut {
         optimizeClassLoading = true
         deduceEnvironment = true
         optimizeNetty = true
+    }
+}
+
+allure {
+    version.set("2.33.0")
+    adapter {
+        frameworks {
+            junit5 {
+                enabled.set(true)
+            }
+        }
+    }
+    report {
+        singleFile.set(true)
     }
 }

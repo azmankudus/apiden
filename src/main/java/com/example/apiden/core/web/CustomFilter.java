@@ -11,9 +11,9 @@ import io.micronaut.http.annotation.ServerFilter;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Filter;
 import io.micronaut.core.annotation.Nullable;
+import io.micronaut.core.propagation.MutablePropagatedContext;
 import io.micronaut.json.JsonMapper;
 import io.micronaut.json.tree.JsonNode;
-import io.micronaut.core.propagation.MutablePropagatedContext;
 
 import com.example.apiden.core.infra.Constant;
 import com.example.apiden.core.infra.ConfigManager;
@@ -22,7 +22,6 @@ import com.example.apiden.core.infra.ServerInfo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -31,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Global filter for handling API requests and responses.
@@ -70,78 +68,26 @@ final class CustomFilter {
    * @param body the raw request body (optional)
    */
   @RequestFilter
-  public void filterRequest(final HttpRequest<?> request, final MutablePropagatedContext mutableContext,
+  public void filterRequest(final HttpRequest<?> request, 
+      final MutablePropagatedContext mutableContext,
       @Nullable @Body String body) {
 
-    Object requestData = null;
-    String clientTraceId = null;
-    String clientTimestamp = null;
+    Context.init(mutableContext);
+    Context.set(Constant.Attr.TIMESTAMP, OffsetDateTime.now());
 
-    if (body != null && !body.isEmpty()) {
-      try {
-        JsonNode root = jsonMapper.readValue(body, JsonNode.class);
-        if (root.isObject()) {
-          JsonNode dataNode = root.get(Constant.Envelope.DATA);
-          if (dataNode != null) {
-            requestData = jsonMapper.readValue(jsonMapper.writeValueAsBytes(dataNode), Object.class);
-          }
-          JsonNode metaNode = root.get(Constant.Envelope.META);
-          if (metaNode != null && metaNode.isObject()) {
-            JsonNode traceNode = metaNode.get(Constant.Meta.CLIENT_TRACE_ID);
-            if (traceNode != null && traceNode.isString()) {
-              clientTraceId = traceNode.getStringValue();
-            }
-            JsonNode tsNode = metaNode.get(Constant.Meta.CLIENT_REQUEST_TIMESTAMP);
-            if (tsNode != null && tsNode.isString()) {
-              clientTimestamp = tsNode.getStringValue();
-            }
-          }
-        }
-      } catch (Exception e) {
-        logger.trace("Failed to parse body as API envelope: {}", e.getMessage());
-      }
+    // 1. Metadata from body
+    extractMetadataFromBody(body);
+
+    // 2. Trace ID logic
+    updateTraceContext(request);
+
+    // 3. Environment info
+    populateEnvironmentInfo(request);
+
+    if (logger.isDebugEnabled()) {
+      logger.debug("Incoming request: method={}, path={}, traceId={}",
+          request.getMethod(), request.getPath(), Context.get(Constant.Attr.CONTEXT_TRACE_ID, Constant.Value.UNKNOWN));
     }
-
-    if (clientTraceId == null) {
-      clientTraceId = request.getHeaders().get(Constant.Attr.CONTEXT_TRACE_ID);
-    }
-
-    String serverTraceId = clientTraceId != null ? clientTraceId : UUID.randomUUID().toString();
-
-    // Add Trace ID to MDC for logging
-    MDC.put(Constant.Attr.CONTEXT_TRACE_ID, serverTraceId);
-
-    // Store everything in the propagated context
-    Map<String, Object> map = new ConcurrentHashMap<>();
-    map.put(Constant.Attr.TIMESTAMP, OffsetDateTime.now());
-    map.put(Constant.Attr.CONTEXT_TRACE_ID, serverTraceId);
-    if (requestData != null) {
-      map.put(Constant.Attr.REQUEST_DATA, requestData);
-    }
-    if (clientTraceId != null) {
-      map.put(Constant.Attr.CLIENT_TRACE_ID, clientTraceId);
-    }
-    if (clientTimestamp != null) {
-      map.put(Constant.Attr.CLIENT_TIMESTAMP, clientTimestamp);
-    }
-
-    // Extract Environment Info
-    String userAgent = request.getHeaders().get("User-Agent");
-    String clientIp = request.getRemoteAddress().getAddress().getHostAddress();
-    String xForwardedFor = request.getHeaders().get("X-Forwarded-For");
-    String clientOs = parseOs(userAgent);
-
-    map.put(Constant.Attr.CLIENT_AGENT, userAgent != null ? userAgent : "Unknown");
-    map.put(Constant.Attr.CLIENT_OS, clientOs);
-    map.put(Constant.Attr.CLIENT_IP, clientIp != null ? clientIp : "Unknown");
-    map.put(Constant.Attr.CLIENT_ACTUAL_IP,
-        xForwardedFor != null ? xForwardedFor : (clientIp != null ? clientIp : "Unknown"));
-
-    Context.init(map);
-    mutableContext.add(new Context(Context.getMap()));
-
-    logger.debug("Incoming request: method={}, path={}, traceId={}",
-        request.getMethod(), request.getPath(), serverTraceId);
   }
 
   /**
@@ -152,7 +98,7 @@ final class CustomFilter {
    */
   private String parseOs(final String userAgent) {
     if (userAgent == null)
-      return "Unknown";
+      return Constant.Value.UNKNOWN;
     if (userAgent.contains("Windows"))
       return "Windows";
     if (userAgent.contains("Mac"))
@@ -163,7 +109,7 @@ final class CustomFilter {
       return "Android";
     if (userAgent.contains("iPhone") || userAgent.contains("iPad"))
       return "iOS";
-    return "Unknown";
+    return Constant.Value.UNKNOWN;
   }
 
   /**
@@ -177,50 +123,19 @@ final class CustomFilter {
     try {
       boolean includeMetadata = config.getBoolean(Constant.Config.INCLUDE_METADATA, true);
 
-      OffsetDateTime serverRequestTimestamp;
+      OffsetDateTime requestTimestamp;
       try {
-        serverRequestTimestamp = Context.get(Constant.Attr.TIMESTAMP, OffsetDateTime.now());
+        requestTimestamp = Context.get(Constant.Attr.TIMESTAMP, OffsetDateTime.now());
       } catch (IllegalStateException e) {
-        serverRequestTimestamp = OffsetDateTime.now();
+        requestTimestamp = OffsetDateTime.now();
       }
 
-      Map<String, Object> meta = null;
-      if (includeMetadata) {
-        meta = buildMeta(request, response, serverRequestTimestamp);
-      }
-
-      Object body = response.body();
-      if (body instanceof Optional<?> opt) {
-        body = opt.orElse(null);
-      }
-
-      if (body instanceof ResponseEnvelope existing) {
-        if (includeMetadata) {
-          Map<String, Object> mergedMeta = new LinkedHashMap<>();
-          if (existing.meta() != null) {
-            mergedMeta.putAll(existing.meta());
-          }
-          mergedMeta.putAll(meta);
-          response.body(new ResponseEnvelope(existing.data(), existing.errors(), mergedMeta));
-        }
-      } else if (response.status().getCode() >= 400) {
-        String code = String.format("00000%03d", response.status().getCode());
-        String message = response.status().getReason();
-
-        if (message == null || message.isBlank()) {
-          message = "Error " + code;
-        }
-
-        ResponseError error = new ResponseError(code, message, null);
-        response.body(new ResponseEnvelope(null, List.of(error), meta));
-      } else {
-        response.body(new ResponseEnvelope(body, null, meta));
-      }
+      Map<String, Object> meta = includeMetadata ? buildMeta(request, response, requestTimestamp) : null;
+      wrapResponse(response, meta, includeMetadata);
 
       logger.debug("Outgoing response: status={}, path={}", response.status().getCode(), request.getPath());
 
     } finally {
-      MDC.remove(Constant.Attr.CONTEXT_TRACE_ID);
       Context.destroy();
     }
   }
@@ -245,6 +160,7 @@ final class CustomFilter {
       clientTraceId = Context.get(Constant.Attr.CLIENT_TRACE_ID, (String) null);
       clientTimestamp = Context.get(Constant.Attr.CLIENT_TIMESTAMP, (String) null);
     } catch (IllegalStateException ignored) {
+      // Ignored: context may not be initialized if request filtering failed or was skipped
     }
 
     if (clientTimestamp != null) {
@@ -276,11 +192,12 @@ final class CustomFilter {
 
     if (config.getBoolean(Constant.Config.INCLUDE_ENVIRONMENT_INFO, false)) {
       try {
-        meta.put(Constant.Meta.CLIENT_AGENT, Context.get(Constant.Attr.CLIENT_AGENT, "Unknown"));
-        meta.put(Constant.Meta.CLIENT_OS, Context.get(Constant.Attr.CLIENT_OS, "Unknown"));
-        meta.put(Constant.Meta.CLIENT_IP, Context.get(Constant.Attr.CLIENT_IP, "Unknown"));
-        meta.put(Constant.Meta.CLIENT_ACTUAL_IP, Context.get(Constant.Attr.CLIENT_ACTUAL_IP, "Unknown"));
+        meta.put(Constant.Meta.CLIENT_USER_AGENT, Context.get(Constant.Attr.CLIENT_USER_AGENT, Constant.Value.UNKNOWN));
+        meta.put(Constant.Meta.CLIENT_OS, Context.get(Constant.Attr.CLIENT_OS, Constant.Value.UNKNOWN));
+        meta.put(Constant.Meta.CLIENT_IP, Context.get(Constant.Attr.CLIENT_IP, Constant.Value.UNKNOWN));
+        meta.put(Constant.Meta.CLIENT_ACTUAL_IP, Context.get(Constant.Attr.CLIENT_ACTUAL_IP, Constant.Value.UNKNOWN));
       } catch (IllegalStateException ignored) {
+        // Ignored: context may not be initialized if request filtering failed or was skipped
       }
       meta.put(Constant.Meta.SERVER_INSTANCE_NAME, serverInfo.getInstanceName());
       meta.put(Constant.Meta.SERVER_OS, serverInfo.getOs());
@@ -289,5 +206,112 @@ final class CustomFilter {
     }
 
     return meta;
+  }
+
+  private void extractMetadataFromBody(final String body) {
+    if (body == null || body.isEmpty()) {
+      return;
+    }
+
+    try {
+      JsonNode root = jsonMapper.readValue(body, JsonNode.class);
+      if (!root.isObject()) {
+        return;
+      }
+
+      Object data = extractJsonValue(root, Constant.Envelope.DATA);
+      if (data != null) {
+        Context.set(Constant.Attr.REQUEST_DATA, data);
+      }
+
+      JsonNode metaNode = root.get(Constant.Envelope.META);
+      if (metaNode != null && metaNode.isObject()) {
+        setIfAbsent(Constant.Attr.CLIENT_TRACE_ID, getString(metaNode, Constant.Meta.CLIENT_TRACE_ID));
+        setIfAbsent(Constant.Attr.CLIENT_TIMESTAMP, getString(metaNode, Constant.Meta.CLIENT_REQUEST_TIMESTAMP));
+      }
+    } catch (Exception e) {
+      logger.trace("Failed to parse body as API envelope: {}", e.getMessage());
+    }
+  }
+
+  private void setIfAbsent(final String key, final Object value) {
+    if (value != null && Context.get(key, null) == null) {
+      Context.set(key, value);
+    }
+  }
+
+  private Object extractJsonValue(JsonNode root, String key) throws java.io.IOException {
+    JsonNode node = root.get(key);
+    return node != null ? jsonMapper.readValue(jsonMapper.writeValueAsBytes(node), Object.class) : null;
+  }
+
+  private String getString(JsonNode node, String key) {
+    JsonNode value = node.get(key);
+    return (value != null && value.isString()) ? value.getStringValue() : null;
+  }
+
+  private void wrapResponse(MutableHttpResponse<?> response, Map<String, Object> meta, boolean includeMetadata) {
+    Object body = response.body();
+    if (body instanceof Optional<?> opt)
+      body = opt.orElse(null);
+
+    if (body instanceof ResponseEnvelope existing) {
+      response.body(includeMetadata ? mergeResponseMeta(existing, meta) : existing);
+    } else if (response.status().getCode() >= 400) {
+      response.body(createErrorEnvelope(response, meta));
+    } else {
+      response.body(new ResponseEnvelope(body, null, meta));
+    }
+  }
+
+  private ResponseEnvelope mergeResponseMeta(ResponseEnvelope existing, Map<String, Object> meta) {
+    Map<String, Object> merged = new LinkedHashMap<>();
+    if (existing.meta() != null)
+      merged.putAll(existing.meta());
+    if (meta != null)
+      merged.putAll(meta);
+    return new ResponseEnvelope(existing.data(), existing.errors(), merged);
+  }
+
+  private ResponseEnvelope createErrorEnvelope(MutableHttpResponse<?> response, Map<String, Object> meta) {
+    String code = String.format("00000%03d", response.status().getCode());
+    String msg = response.status().getReason();
+    if (msg == null || msg.isBlank())
+      msg = "Error " + code;
+    return new ResponseEnvelope(null, List.of(new ResponseError(code, msg, null)), meta);
+  }
+
+  /**
+   * Determines and updates the trace ID for the request.
+   *
+   * @param request The current request
+   */
+  private void updateTraceContext(final HttpRequest<?> request) {
+    String clientTraceId = Context.get(Constant.Attr.CLIENT_TRACE_ID, null);
+    if (clientTraceId == null) {
+      clientTraceId = request.getHeaders().get(Constant.Attr.CONTEXT_TRACE_ID);
+    }
+
+    String serverTraceId = clientTraceId != null ? clientTraceId : UUID.randomUUID().toString();
+    Context.set(Constant.Attr.CONTEXT_TRACE_ID, serverTraceId);
+  }
+
+  /**
+   * Populates environmental client information (IP, OS).
+   *
+   * @param request The current request
+   */
+  private void populateEnvironmentInfo(final HttpRequest<?> request) {
+    String userAgent = request.getHeaders().get("User-Agent");
+    String clientIp = request.getRemoteAddress().getAddress().getHostAddress();
+    String xForwardedFor = request.getHeaders().get("X-Forwarded-For");
+
+    String displayClientIp = clientIp != null ? clientIp : Constant.Value.UNKNOWN;
+    String actualIp = xForwardedFor != null ? xForwardedFor : displayClientIp;
+
+    Context.set(Constant.Attr.CLIENT_USER_AGENT, userAgent != null ? userAgent : Constant.Value.UNKNOWN);
+    Context.set(Constant.Attr.CLIENT_OS, parseOs(userAgent));
+    Context.set(Constant.Attr.CLIENT_IP, displayClientIp);
+    Context.set(Constant.Attr.CLIENT_ACTUAL_IP, actualIp);
   }
 }
